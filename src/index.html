@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>sigma presence</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="index.css">
+    <!-- Your JS file if needed -->
+    <script defer src="render.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800; /* Extrabold weight */
+        }
+        /* Additionally apply "user-select: none" if you still want to prevent text copying */
+        body {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* Internet Explorer/Edge */
+            user-select: none;         /* Non-prefixed version, currently supported by Chrome, Opera, and Edge */
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <h1 class="text-center mb-4">sigma presence</h1>
+        <form id="makerpc" class="row g-3">
+            <div class="col-md-6">
+                <label for="clientid" class="form-label">Client ID</label>
+                <input type="text" class="form-control" id="clientid" placeholder="e.g 888888888888888888" required>
+            </div>
+            
+            <div class="col-md-6">
+                <label for="largeimage" class="form-label">Large Image</label>
+                <input type="text" class="form-control" id="largeimage" placeholder="Large Image">
+            </div>
+            
+            <div class="col-md-6">
+                <label for="smallimage" class="form-label">Small Image</label>
+                <input type="text" class="form-control" id="smallimage" placeholder="Small Image">
+            </div>
+            
+            <div class="col-md-6">
+                <label for="state" class="form-label">State</label>
+                <input type="text" class="form-control" id="state" placeholder="State">
+            </div>
+            
+            <div class="col-md-12">
+                <label for="details" class="form-label">Details</label>
+                <input type="text" class="form-control" id="details" placeholder="Details">
+            </div>
+            
+            <div class="col-12 text-center">
+                <button type="button" id="toggleRPC" class="btn btn-primary">Start RPC</button>
+                <button type="button" id="showHistory" class="btn btn-secondary">RPC History</button>
+            </div>
+        </form>
+        
+<!-- Modal -->
+<div class="modal" tabindex="-1" id="historyModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">RPC History</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul id="previousEntries" class="list-group">
+
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+    <script>
+let rpcStarted = false;
+
+function toggleRPC() {
+    if (rpcStarted) {
+        // RPC is currently started; initiate stop procedure
+        stopRPC();
+    } else {
+        // RPC is currently stopped; initiate start procedure
+        startRPC();
+    }
+}
+
+async function startRPC() {
+    const clientid = document.getElementById('clientid').value;
+    const largeimage = document.getElementById('largeimage').value;
+    const smallimage = document.getElementById('smallimage').value;
+    const state = document.getElementById('state').value;
+    const details = document.getElementById('details').value;
+
+    const result = await fetch('http://localhost:3000/api/makerpc', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+           clientid,
+           largeimage,
+           smallimage,
+           state,
+           details
+        })
+    }).then((res) => res.json());
+    
+    if(result.status === "ok") {
+        saveDataToLocalStorage({
+           clientid,
+           largeimage,
+           smallimage,
+           state,
+           details,
+           timestamp: new Date().toLocaleString()
+       });
+       // Toggle RPC state and update the button
+       rpcStarted = true;
+       updateRPCButton();
+    } else {
+        alert(result.error);
+    }
+}
+
+async function stopRPC() {
+    const response = await fetch('http://localhost:3000/api/stoprpc', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    const data = await response.json();
+    if(data.status === "ok") {
+        console.log("Rich Presence stopped successfully.");
+        // Toggle RPC state and update the button
+        rpcStarted = false;
+        updateRPCButton();
+    } else {
+        console.error("Failed to stop Rich Presence.");
+    }
+}
+
+function updateRPCButton() {
+    const button = document.getElementById('toggleRPC');
+    if (rpcStarted) {
+        button.textContent = 'Stop RPC';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-danger');
+    } else {
+        button.textContent = 'Start RPC';
+        button.classList.remove('btn-danger');
+        button.classList.add('btn-primary');
+    }
+}
+
+document.getElementById('toggleRPC').addEventListener('click', toggleRPC);
+
+function saveDataToLocalStorage(data) {
+    let savedData = localStorage.getItem('rpcEntries');
+    if (savedData) {
+        savedData = JSON.parse(savedData);
+    } else {
+        savedData = [];
+    }
+    savedData.push(data);
+    localStorage.setItem('rpcEntries', JSON.stringify(savedData));
+}
+
+function populateModalWithHistory() {
+    const savedData = localStorage.getItem('rpcEntries');
+    const list = document.getElementById('previousEntries');
+    list.innerHTML = ''; // Clear existing list items
+
+    if (savedData) {
+        JSON.parse(savedData).forEach(entry => {
+            const listItem = document.createElement('li');
+            listItem.classList.add('list-group-item');
+            listItem.textContent = `ID: ${entry.clientid}, State: ${entry.state} - ${entry.timestamp}`;
+            list.appendChild(listItem);
+        });
+    }
+}
+
+// Event listener to show the modal and populate it with data
+document.getElementById('showHistory').addEventListener('click', () => {
+    populateModalWithHistory();
+    // Show the modal using Bootstrap's functionality (assuming you are using Bootstrap)
+    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    historyModal.show();
+});
+
+function populateModalWithHistory() {
+    const savedData = localStorage.getItem('rpcEntries');
+    const list = document.getElementById('previousEntries');
+    list.innerHTML = ''; // Clear existing list items
+
+    if (savedData) {
+        JSON.parse(savedData).forEach((entry, index) => {
+            // Using Bootstrap card components for layout
+            const card = document.createElement('div');
+            card.classList.add('card', 'mb-3');
+
+            const cardBody = document.createElement('div');
+            cardBody.classList.add('card-body');
+            
+            const cardTitle = document.createElement('h5');
+            cardTitle.classList.add('card-title');
+            cardTitle.textContent = `Entry Recorded: ${entry.timestamp}`;
+            
+            const cardText = document.createElement('p');
+            cardText.classList.add('card-text');
+            cardText.innerHTML = `
+            <strong>Client ID:</strong> ${entry.clientid} <br>
+            <strong>State:</strong> ${entry.state} <br>
+            <strong>Details:</strong> ${entry.details} <br>
+            <strong>Large Image ID:</strong> ${entry.largeimage} <br>
+            <strong>Small Image ID:</strong> ${entry.smallimage} <br>
+            `;
+
+            const autofillButton = document.createElement('button');
+            autofillButton.textContent = 'Autofill';
+            autofillButton.classList.add('btn', 'btn-primary', 'mt-2');
+            autofillButton.addEventListener('click', () => autofillData(index));
+
+            // Appending components to construct the layout
+            cardBody.appendChild(cardTitle);
+            cardBody.appendChild(cardText);
+            cardBody.appendChild(autofillButton);
+            card.appendChild(cardBody);
+            
+            list.appendChild(card); // Appending the full card to the list
+        });
+    }
+}
+
+function autofillData(index) {
+    const savedData = localStorage.getItem('rpcEntries');
+    
+    if (savedData) {
+        const entries = JSON.parse(savedData);
+        const entry = entries[index];
+        
+        // Assuming you have input fields with IDs: clientid, largeimage, smallimage, state, details
+        document.getElementById('clientid').value = entry.clientid;
+        document.getElementById('largeimage').value = entry.largeimage;
+        document.getElementById('smallimage').value = entry.smallimage;
+        document.getElementById('state').value = entry.state;
+        document.getElementById('details').value = entry.details;
+        
+        // Optionally, Close the modal once the data is autofilled
+        // Bootstrap 5 example:
+        const historyModalElement = document.getElementById('historyModal');
+        const modalInstance = bootstrap.Modal.getInstance(historyModalElement);
+        modalInstance.hide();
+    }
+}
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

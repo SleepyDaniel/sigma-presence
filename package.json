@@ -1,0 +1,74 @@
+{
+  "name": "sigma-presence",
+  "version": "1.0.0",
+  "description": "Easy rich presence for Discord",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "produce": "electron-builder"
+  },
+  "build": {
+    "appId": "sigma-presence",
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icons/sigmainstaller.ico"
+    },
+    "nsis": {
+      "installerIcon": "icons/sigmainstaller.ico",
+      "uninstallerIcon": "icons/sigmainstaller.ico",
+      "uninstallDisplayName": "Rich Presence",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "keywords": [],
+  "author": {
+    "name": "SleepyDaniel"
+  },
+  "license": "MIT",
+  "config": {
+    "forge": {
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "myapp"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "darwin"
+          ]
+        },
+        {
+          "name": "@electron-forge/maker-deb",
+          "config": {}
+        },
+        {
+          "name": "@electron-forge/maker-rpm",
+          "config": {}
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "discord-rpc": "^4.0.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-deb": "^7.4.0",
+    "@electron-forge/maker-rpm": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
+    "electron": "30.0.6"
+  }
+}
